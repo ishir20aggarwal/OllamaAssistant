@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ollama Assistant</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+
+  <div class="app" id="app">
+
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/>
+          <circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="1.5"/>
+          <circle cx="12" cy="12" r="2" fill="currentColor"/>
+          <circle cx="12" cy="2" r="1.5" fill="currentColor"/>
+          <circle cx="12" cy="22" r="1.5" fill="currentColor"/>
+          <circle cx="2" cy="12" r="1.5" fill="currentColor"/>
+          <circle cx="22" cy="12" r="1.5" fill="currentColor"/>
+        </svg>
+        <span class="app-name">Ollama</span>
+      </div>
+      <div class="header-right">
+        <select id="model-select" class="model-select" title="Select model">
+          <option value="">Loading...</option>
+        </select>
+        <!-- Computer Use toggle -->
+        <button id="computer-use-btn" class="icon-btn" title="Computer Use mode — AI can click and type on the page">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="3" width="20" height="14" rx="2"/>
+            <path d="M8 21h8M12 17v4"/>
+            <circle cx="12" cy="10" r="2"/>
+            <path d="M12 8v-2M12 14v-2M10 10H8M16 10h-2"/>
+          </svg>
+        </button>
+        <button id="new-chat-btn" class="icon-btn" title="New conversation">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+        </button>
+        <button id="settings-btn" class="icon-btn" title="Settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Connection error banner -->
+    <div id="error-banner" class="error-banner hidden">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <span id="error-text">Cannot connect to Ollama</span>
+      <button id="retry-btn" class="retry-btn">Retry</button>
+    </div>
+
+    <!-- Computer use mode banner -->
+    <div id="computer-use-banner" class="computer-use-banner hidden">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="2" y="3" width="20" height="14" rx="2"/>
+        <path d="M8 21h8M12 17v4"/>
+      </svg>
+      <span>Computer Use active — AI can click, type and navigate</span>
+      <button id="exit-computer-use-btn" class="exit-cu-btn">Exit</button>
+    </div>
+
+    <!-- Settings panel -->
+    <div id="settings-panel" class="settings-panel hidden">
+      <div class="settings-header">
+        <h3>Settings</h3>
+        <button id="close-settings-btn" class="icon-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="settings-body">
+        <div class="setting-group">
+          <label for="ollama-url-input">Ollama URL</label>
+          <input type="text" id="ollama-url-input" placeholder="http://localhost:11434" spellcheck="false">
+        </div>
+        <div class="setting-group">
+          <label for="system-prompt-input">System Prompt</label>
+          <textarea id="system-prompt-input" rows="4" placeholder="You are a helpful assistant..."></textarea>
+        </div>
+        <div class="setting-group">
+          <label for="temperature-input">
+            Temperature
+            <span id="temperature-display" class="setting-value">0.7</span>
+          </label>
+          <input type="range" id="temperature-input" min="0" max="2" step="0.1" value="0.7">
+        </div>
+        <div class="cors-note">
+          <strong>CORS Setup Required</strong>
+          <p>Set <code>OLLAMA_ORIGINS=*</code> as a system environment variable, then restart Ollama.</p>
+          <strong style="margin-top:8px;display:block">Vision / Screen Capture</strong>
+          <p>Screenshot requires a vision model (e.g. <code>ollama pull llava</code>)</p>
+          <strong style="margin-top:8px;display:block">Computer Use</strong>
+          <p>AI can click, type and navigate the page. Use any model.</p>
+        </div>
+        <button id="save-settings-btn" class="save-btn">Save Settings</button>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    <main class="messages" id="messages">
+      <div class="welcome" id="welcome">
+        <svg class="welcome-icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="24" cy="24" r="22" stroke="currentColor" stroke-width="2"/>
+          <circle cx="24" cy="24" r="12" stroke="currentColor" stroke-width="2"/>
+          <circle cx="24" cy="24" r="4" fill="currentColor"/>
+          <circle cx="24" cy="2" r="3" fill="currentColor"/>
+          <circle cx="24" cy="46" r="3" fill="currentColor"/>
+          <circle cx="2" cy="24" r="3" fill="currentColor"/>
+          <circle cx="46" cy="24" r="3" fill="currentColor"/>
+        </svg>
+        <h2>Ollama Assistant</h2>
+        <p>Powered by your local AI.<br>Private, fast, no tokens consumed.</p>
+        <div class="welcome-hints">
+          <button class="hint-chip" data-prompt="Summarize this page for me">Summarize page</button>
+          <button class="hint-chip" data-prompt="What are the key points on this page?">Key points</button>
+          <button class="hint-chip" data-prompt="Explain this to me like I'm 5">Explain simply</button>
+          <button class="hint-chip" data-prompt="Write a short summary of what I'm reading">Write summary</button>
+        </div>
+      </div>
+    </main>
+
+    <!-- Input area -->
+    <footer class="input-area">
+      <!-- Page context bar -->
+      <div id="page-context-bar" class="page-context-bar hidden">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+        </svg>
+        <span id="page-context-label">Page included</span>
+        <button id="clear-context-btn" class="clear-ctx-btn" title="Remove page context">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Screenshot context bar -->
+      <div id="screenshot-context-bar" class="screenshot-context-bar hidden">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        </svg>
+        <span id="screenshot-label">Screenshot captured</span>
+        <button id="clear-screenshot-btn" class="clear-ctx-btn" title="Remove screenshot">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="input-row">
+        <!-- Read page button -->
+        <button id="add-page-btn" class="icon-btn page-btn" title="Read current page">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>
+        </button>
+
+        <!-- Screenshot button -->
+        <button id="screenshot-btn" class="icon-btn screenshot-btn" title="Take screenshot (requires vision model like llava)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+        </button>
+
+        <textarea
+          id="user-input"
+          placeholder="Message Ollama..."
+          rows="1"
+          spellcheck="true"
+        ></textarea>
+
+        <button id="send-btn" class="send-btn" title="Send message">
+          <svg id="send-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="22" y1="2" x2="11" y2="13"/>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+          <svg id="stop-icon" viewBox="0 0 24 24" fill="currentColor" class="hidden">
+            <rect x="6" y="6" width="12" height="12" rx="2"/>
+          </svg>
+        </button>
+      </div>
+    </footer>
+
+  </div>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>
